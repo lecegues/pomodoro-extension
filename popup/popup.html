@@ -4,18 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pomodoro</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
     <!-- Title and Help Button -->
-    <header>
-        <h1>Pomodoro</h1>
+    <header class="title">
+        <span id="title_text">Pomodoro</span>
+        <!-- <h1 style="font-size: 30px;">Pomodoro</h1> -->
+        <!-- <img id="help_symbol" src="../images/help_icon.svg" alt="Help"> -->
     </header>
 
     <!-- Pomodoro Content -->
     <main>
         <!-- Contains apple image, timer, and set -->
-        <section id="timer">
-            <h2>25:00</h2>
+        <section id="timer-container">
+            <span id="timer_text">25:00</span>
+            <div id="set_container">
+                <span class="set_dot set_dot--dark"></span>
+                <span class="set_dot"></span>
+                <span class="set_dot"></span>
+                <span class="set_dot"></span>
+                <span class="set_dot"></span>
+                <span class="set_dot"></span>
+            </div>
         </section>
 
         <!-- Contains options to change minutes, short break, long break, sets -->
@@ -28,7 +39,7 @@
 
         <!-- Contains controls to start/stop, cancel, go previous/next-->
         <section id="controls">
-            <p>Start</p>
+            <button>Start</button>
         </section>
     </main>
 </body>
