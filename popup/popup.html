@@ -30,16 +30,64 @@
         </section>
 
         <!-- Contains options to change minutes, short break, long break, sets -->
-        <section id="options">
+        <section id="options-container">
+            <!--
             <p>Minutes</p>
-            <p>Short Break</p>
-            <p>Long Break</p>
-            <p>Sets: 5</p>
+            <p>Short Break</p> (option_short_break)
+            <p>Long Break</p> (option_long_break)
+            <p>Sets: 5</p> (option_sets)
+            -->
+
+            <div class="options_slider_container">
+                <span>Minutes</span>
+                <input type="range" min="1" max="60" value="30" class="option_slider">  
+                <span>25:00</span>
+            </div>
+            <div class="options_slider_container">
+                <span>Short Break</span>
+                <input type="range" min="1" max="60" value="30" class="option_slider">
+                <span>5:00</span>
+            </div>
+            <div class="options_slider_container">
+                <span>Long Break</span>
+                <input type="range" min="1" max="60" value="30" class="option_slider">
+                <span>15:00</span>
+            </div>
+
+        </section>
+
+        <section id="sets_container">
+            <span> Sets: 5</span>
         </section>
 
         <!-- Contains controls to start/stop, cancel, go previous/next-->
-        <section id="controls">
-            <button>Start</button>
+         <!--
+        <section id="controls_container">
+            <button id="start_button">Start</button>
+            <button id="x_button">
+                <img src="/images/x-icon.svg" alt="icon" width="36" height="36">
+            </button>
+        </section>
+        -->
+        <section id="controls_container"> 
+            <div id="controls_left_container">
+                <button id="left_button">
+                    <img src="/images/left_chevron_icon.svg" alt="icon" width="36" height="36">
+                </button>
+            </div>
+            <div id="controls_center_container">
+                <button id="start_button">Start</button>
+                <button id="x_button">
+                    <img src="/images/x-icon.svg" alt="icon" width="36" height="36">
+                </button>
+            </div>
+            <div id="controls_right_container"> 
+                <button id="right_button">
+                    <img src="/images/right_chevron.svg" alt="icon" width="36" height="36">
+                </button>
+            </div>
+
+
         </section>
     </main>
 </body>
