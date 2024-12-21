@@ -40,24 +40,24 @@
 
             <div class="options_slider_container">
                 <span>Minutes</span>
-                <input type="range" min="1" max="60" value="30" class="option_slider">  
-                <span>25:00</span>
+                <input type="range" min="1" max="60" value="30" class="option_slider" id="minute_slider">  
+                <span id="minute_slider_value">30:00</span>
             </div>
             <div class="options_slider_container">
                 <span>Short Break</span>
-                <input type="range" min="1" max="60" value="30" class="option_slider">
-                <span>5:00</span>
+                <input type="range" min="1" max="30" value="5" class="option_slider" id="short_break_slider">
+                <span id="short_break_slider_value">5:00</span>
             </div>
             <div class="options_slider_container">
                 <span>Long Break</span>
-                <input type="range" min="1" max="60" value="30" class="option_slider">
-                <span>15:00</span>
+                <input type="range" min="1" max="60" value="15" class="option_slider" id="long_break_slider">
+                <span id="long_break_slider_value">15:00</span>
             </div>
 
         </section>
 
         <section id="sets_container">
-            <span> Sets: 5</span>
+            <div>Sets: <span id="sets_value"> 5</span></div>
         </section>
 
         <!-- Contains controls to start/stop, cancel, go previous/next-->
@@ -90,5 +90,7 @@
 
         </section>
     </main>
+
+     <script src="popup.js"></script>
 </body>
 </html>
