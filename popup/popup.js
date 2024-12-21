@@ -30,6 +30,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const setsRightBtn = document.getElementById("right_button");
     const setContainer = document.getElementById("set_container");
 
+    const timerText = document.getElementById("timer_text");
+    const startButton = document.getElementById("start_button");
+
+    // timer variables
+    let isRunning = false;
+    let timerInterval = null; 
+    let remainingTime = 0;
+
     /**
      * Initialize settings from localStorage / default value
      */
@@ -53,6 +61,9 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.setItem(STORAGE_KEYS.SETS, sets);
         }
         updateSetDisplay(sets);
+
+        // @TODO should change dynamically decrementing
+        timerText.textContent = formatTime(minutes * 60);
     };
 
     /**
@@ -83,11 +94,89 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem(key, value);
     }
 
+    /**
+     * Format time in seconds to mm:ss format
+     * @param {*} seconds 
+     * @returns 
+     */
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    /**
+     * Starts countdown timer
+     */
+    const startTimer = () => {
+        if (isRunning) return; // make sure its only running once
+
+        isRunning = true;
+        lockSliders(true); // @TODO
+        startButton.textContent = "Pause";
+
+        // Initialize remainingTime based on settings
+        const minutes = parseInt(minuteSlider.value);
+        remainingTime = minutes * 60;
+
+        timerText.textContent = formatTime(remainingTime);
+
+        timerInterval = setInterval(() => {
+            if (remainingTime > 0) {
+                remainingTime -= 1;
+                timerText.textContent = formatTime(remainingTime);
+            }
+            else {
+                clearInterval(timerInterval);
+                isRunning = false;
+                lockSliders(false);
+                startButton.textContent = "Start";
+            }
+        }, 1000);
+    };
+
+    /**
+     * Pauses the timer
+     * @returns
+     */
+    const pauseTimer = () => {
+        if (!isRunning) return;
+
+        clearInterval(timerInterval);
+        isRunning = false;
+        lockSliders(false);
+        startButton.textContent = "Start";
+    }
+
+    const toggleTimer = () => {
+        if (isRunning) {
+            pauseTimer();
+        }
+        else {
+            startTimer();
+        }
+    }
+
+    /**
+     * Toggles disabled/enabled state
+     * @param {boolean} lock 
+     */
+    const lockSliders = (lock) => {
+        minuteSlider.disabled = lock;
+        shortBreakSlider.disabled = lock;
+        longBreakSlider.disabled = lock; 
+        setsLeftBtn.disabled = lock; 
+        setsRightBtn.disabled = lock;
+    }
+
     // Event listeners for sliders
     minuteSlider.addEventListener("input", () => {
         const minutes = minuteSlider.value;
         minuteSliderValue.textContent = `${minutes}:00`;
         saveToLocalStorage(STORAGE_KEYS.MINUTES, minutes);
+
+        // change main timer text as well
+        timerText.textContent = `${minutes}:00`;
     });
     
     shortBreakSlider.addEventListener("input", () => {
@@ -120,6 +209,8 @@ document.addEventListener("DOMContentLoaded", () => {
             updateSetDisplay(sets);
         }
     });
+
+    startButton.addEventListener("click", toggleTimer);
 
     initializeSettings();
 
