@@ -38,32 +38,67 @@ document.addEventListener("DOMContentLoaded", () => {
     let timerInterval = null; 
     let remainingTime = 0;
 
+    /* Utility functions for CRUD chrome storage */
+    const getStorageData = async (keys) => {
+        return new Promise((resolve, reject) => {
+            chrome.storage.local.get(keys, (result) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve(result);
+            });
+        });
+    };
+
+    const setStorageData = async (data) => {
+        return new Promise((resolve, reject) => {
+            chrome.storage.local.set(data, () => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve();
+            });
+        });
+    };
+
     /**
      * Initialize settings from localStorage / default value
      */
-    const initializeSettings = () => {
-        const minutes = parseInt(localStorage.getItem(STORAGE_KEYS.MINUTES)) || 30;
-        const shortBreak = parseInt(localStorage.getItem(STORAGE_KEYS.SHORT_BREAK)) || 5;
-        const longBreak = parseInt(localStorage.getItem(STORAGE_KEYS.LONG_BREAK)) || 15;
+    const initializeSettings = async () => {
+        try {
+            const data = await getStorageData([
+                STORAGE_KEYS.MINUTES,
+                STORAGE_KEYS.SHORT_BREAK,
+                STORAGE_KEYS.LONG_BREAK,
+                STORAGE_KEYS.SETS,
+            ]);
 
-        minuteSlider.value = minutes;
-        shortBreakSlider.value = shortBreak;
-        longBreakSlider.value = longBreak;
+            const minutes = parseInt(data[STORAGE_KEYS.MINUTES]) || 30;
+            const shortBreak = parseInt(data[STORAGE_KEYS.SHORT_BREAK]) || 5;
+            const longBreak = parseInt(data[STORAGE_KEYS.LONG_BREAK]) || 15;
+            let sets = parseInt(data[STORAGE_KEYS.SETS]);
 
-        minuteSliderValue.textContent = `${minutes}:00`;
-        shortBreakSliderValue.textContent = `${shortBreak}:00`;
-        longBreakSliderValue.textContent = `${longBreak}:00`;
+            minuteSlider.value = minutes;
+            shortBreakSlider.value = shortBreak;
+            longBreakSlider.value = longBreak;
 
-        // Initialize sets
-        let sets = parseInt(localStorage.getItem(STORAGE_KEYS.SETS));
-        if (isNaN(sets)) {
-            sets = DEFAULT_SETS;
-            localStorage.setItem(STORAGE_KEYS.SETS, sets);
+            minuteSliderValue.textContent = `${minutes}:00`;
+            shortBreakSliderValue.textContent = `${shortBreak}:00`;
+            longBreakSliderValue.textContent = `${longBreak}:00`;
+
+            // Initialize sets
+            if (isNaN(sets)) {
+                sets = DEFAULT_SETS;
+                await setStorageData({ [STORAGE_KEYS.SETS]: sets });
+            }
+            updateSetDisplay(sets);
+            timerText.textContent = formatTime(minutes * 60);
+
+
         }
-        updateSetDisplay(sets);
-
-        // @TODO should change dynamically decrementing
-        timerText.textContent = formatTime(minutes * 60);
+        catch (err) {
+            console.error("Error initializing settings", err);
+        }
     };
 
     /**
@@ -90,8 +125,14 @@ document.addEventListener("DOMContentLoaded", () => {
      * @param {} key 
      * @param {*} value 
      */
-    const saveToLocalStorage = (key, value) => {
-        localStorage.setItem(key, value);
+    const saveToLocalStorage = async (key, value) => {
+        try{
+            const data = { [key]: value };
+            await setStorageData(data);
+        }
+        catch (err) {
+            console.error(`Error saving ${key} to storage:`, err);
+        }
     }
 
     /**
@@ -170,43 +211,55 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Event listeners for sliders
-    minuteSlider.addEventListener("input", () => {
+    minuteSlider.addEventListener("input", async () => {
         const minutes = minuteSlider.value;
         minuteSliderValue.textContent = `${minutes}:00`;
-        saveToLocalStorage(STORAGE_KEYS.MINUTES, minutes);
+        await saveToLocalStorage(STORAGE_KEYS.MINUTES, minutes);
 
         // change main timer text as well
         timerText.textContent = `${minutes}:00`;
     });
     
-    shortBreakSlider.addEventListener("input", () => {
+    shortBreakSlider.addEventListener("input", async () => {
         const shortBreak = shortBreakSlider.value;
         shortBreakSliderValue.textContent = `${shortBreak}:00`;
-        saveToLocalStorage(STORAGE_KEYS.SHORT_BREAK, shortBreak);
+        await saveToLocalStorage(STORAGE_KEYS.SHORT_BREAK, shortBreak);
     });
 
-    longBreakSlider.addEventListener("input", () =>{
+    longBreakSlider.addEventListener("input", async () =>{
         const longBreak = longBreakSlider.value;
         longBreakSliderValue.textContent = `${longBreak}:00`;
-        saveToLocalStorage(STORAGE_KEYS.LONG_BREAK, longBreak);
+        await saveToLocalStorage(STORAGE_KEYS.LONG_BREAK, longBreak);
     });
 
     // Event Listener for set buttons (increment/decrement)
-    setsLeftBtn.addEventListener("click", () =>{
-        let sets = parseInt(localStorage.getItem(STORAGE_KEYS.SETS)) || DEFAULT_SETS;
-        if (sets > MIN_SETS) {
-            sets -= 1;
-            saveToLocalStorage(STORAGE_KEYS.SETS, sets);
-            updateSetDisplay(sets);
+    setsLeftBtn.addEventListener("click", async () =>{
+        try{ 
+            const data = await getStorageData(STORAGE_KEYS.SETS);
+            let sets = parseInt(data[STORAGE_KEYS.SETS]) || DEFAULT_SETS;
+            if (sets > MIN_SETS) {
+                sets -= 1; 
+                await saveToLocalStorage(STORAGE_KEYS.SETS, sets);
+                updateSetDisplay(sets);
+            }
         }
+        catch (err) {
+            console.error("Error updating sets:", err);
+        }
+
     });
 
-    setsRightBtn.addEventListener("click", () => {
-        let sets = parseInt(localStorage.getItem(STORAGE_KEYS.SETS)) || DEFAULT_SETS;
-        if (sets < MAX_SETS) {
-            sets += 1;
-            saveToLocalStorage(STORAGE_KEYS.SETS, sets);
-            updateSetDisplay(sets);
+    setsRightBtn.addEventListener("click", async () => {
+        try {
+            const data = await getStorageData(STORAGE_KEYS.SETS);
+            let sets = parseInt(data[STORAGE_KEYS.SETS]) || DEFAULT_SETS;
+            if (sets < MAX_SETS) {
+                sets += 1;
+                await saveToLocalStorage(STORAGE_KEYS.SETS, sets);
+                updateSetDisplay(sets);
+            }
+        } catch (err) {
+            console.error("Error updating sets:", err);
         }
     });
 
