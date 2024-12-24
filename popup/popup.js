@@ -149,7 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /**
      * Starts countdown timer
      */
-    const startTimer = () => {
+    const startTimer = async () => {
         if (isRunning) return; // make sure its only running once
 
         isRunning = true;
@@ -161,6 +161,9 @@ document.addEventListener("DOMContentLoaded", () => {
         remainingTime = minutes * 60;
 
         timerText.textContent = formatTime(remainingTime);
+
+        // inform service worker to start timer
+        await startBackgroundTimer();
 
         timerInterval = setInterval(() => {
             if (remainingTime > 0) {
@@ -174,6 +177,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 startButton.textContent = "Start";
             }
         }, 1000);
+    };
+
+    const startBackgroundTimer = async () => {
+        chrome.runtime.sendMessage({ action: "start_timer", duration: 60 }, (response) => {
+            console.log("Background response:", response.status);
+        });
     };
 
     /**
@@ -260,6 +269,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } catch (err) {
             console.error("Error updating sets:", err);
+        }
+    });
+
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.action === "timer_finished") {
+            console.log("Timer finished received!");
         }
     });
 

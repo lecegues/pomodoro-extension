@@ -4,7 +4,9 @@
     "description": "A simple and effective Pomodoro timer to boost your productivity.",
     "version": "1.0",
     "permissions": [
-        "storage"
+        "storage",
+        "alarms",
+        "notifications"
     ],
     "host_permissions": [],
     "action": {
