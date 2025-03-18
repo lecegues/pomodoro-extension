@@ -1,285 +1,165 @@
-console.log("JavaScript file connected!");
+import { STORAGE_KEYS, DEFAULT_STORAGE} from "../constants.js";
+
+console.log("Javascript file connected."); 
 
 document.addEventListener("DOMContentLoaded", () => {
+    // =================================================
+    // CONSTANTS
+    // =================================================
 
-    // define local storage key values
-    const STORAGE_KEYS = {
-        MINUTES: 'minutes',
-        SHORT_BREAK: 'shortBreak',
-        LONG_BREAK: 'longBreak',
-        SETS: 'sets',
-    };
+    // =================================================
+    // UTILITY FUNCTIONS
+    // =================================================
 
-    // define lower and upper limit for sets
-    const MIN_SETS = 1;
-    const MAX_SETS = 8;
-    const DEFAULT_SETS = 4; // if not saved in localStorage
-
-    // DOM Elements
-    const minuteSlider = document.getElementById("minute_slider");
-    const minuteSliderValue = document.getElementById("minute_slider_value");
-
-    const shortBreakSlider = document.getElementById("short_break_slider");
-    const shortBreakSliderValue = document.getElementById("short_break_slider_value");
-
-    const longBreakSlider = document.getElementById("long_break_slider"); 
-    const longBreakSliderValue = document.getElementById("long_break_slider_value"); 
-
-    const setsValue = document.getElementById("sets_value");
-    const setsLeftBtn = document.getElementById("left_button");
-    const setsRightBtn = document.getElementById("right_button");
-    const setContainer = document.getElementById("set_container");
-
-    const timerText = document.getElementById("timer_text");
-    const startButton = document.getElementById("start_button");
-
-    // timer variables
-    let isRunning = false;
-    let timerInterval = null; 
-    let remainingTime = 0;
-
-    /* Utility functions for CRUD chrome storage */
-    const getStorageData = async (keys) => {
+    /*
+    Helper function to retrieve storage data
+    */
+    const _getStorageData = async () => {
         return new Promise((resolve, reject) => {
-            chrome.storage.local.get(keys, (result) => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-            }
-            resolve(result);
-            });
+            chrome.storage.local.get(
+                [STORAGE_KEYS.OPTIONS, STORAGE_KEYS.TIMER_STATE],
+                    (data) => {
+                    if (chrome.runtime.lastError) {
+                        return reject(chrome.runtime.lastError);
+                    }
+
+                    if (!data[STORAGE_KEYS.OPTIONS]) {
+                        console.warn(
+                        `Missing ${STORAGE_KEYS.OPTIONS} data. Using default options.`
+                        );
+                    }
+                    if (!data[STORAGE_KEYS.TIMER_STATE]) {
+                        console.warn(
+                        `Missing ${STORAGE_KEYS.TIMER_STATE} data. Using default timer state.`
+                        );
+                    }
+
+                    // if values are missing, add on default values
+                    const options = {
+                        ...DEFAULT_STORAGE.options,
+                        ...data[STORAGE_KEYS.OPTIONS],
+                    };
+                    const timerState = {
+                        ...DEFAULT_STORAGE.timerState,
+                        ...data[STORAGE_KEYS.TIMER_STATE],
+                    };
+                    resolve({ options, timerState });
+                }
+            );
         });
     };
 
-    const setStorageData = async (data) => {
+    /*
+    Main function to retrieve storage data
+    Returns: an object with two properties (options, timerState)
+        Usage: data.options.minutes, data.timerState.isRunning (refer to constants.js)
+    */
+    const getStorageData = async () => {
+        try {
+            const data = await _getStorageData();
+            console.log("Retrieved data: ", data);
+            return data;
+        }
+        catch (error) {
+            console.error("Error retrieving storage data", error);
+            throw error;
+        }
+    };
+
+    /*
+    Usage:
+        1. Updating ENTIRE structures:
+        (async () => {
+            try {
+                const newOptions = {
+                minutes: 30,
+                shortBreak: 6,
+                longBreak: 20,
+                sets: 5
+                };
+
+                await setStorageData({ [STORAGE_KEYS.OPTIONS]: newOptions });
+                console.log("Options updated successfully!");
+            } catch (error) {
+                console.error("Error updating storage data:", error);
+            }
+        })();
+
+        2. Updating a SINGLE field:
+        (async () => {
+            try {
+                const data = await getStorageData();
+                // Modify only the 'minutes' value
+                const updatedOptions = {
+                ...data.options,
+                minutes: 45
+                };
+
+                await setStorageData({ [STORAGE_KEYS.OPTIONS]: updatedOptions });
+                console.log("Minutes updated successfully!");
+            } catch (error) {
+                console.error("Error updating minutes:", error);
+            }
+        })();
+    */
+    const _setStorageData = async (data) => {
         return new Promise((resolve, reject) => {
             chrome.storage.local.set(data, () => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-            }
-            resolve();
+                if (chrome.runtime.lastError) {
+                    return reject(chrome.runtime.lastError);
+                }
+                resolve();
             });
         });
     };
 
-    /**
-     * Initialize settings from localStorage / default value
-     */
-    const initializeSettings = async () => {
+    const setStorageData = async (sectionKey, updateData, merge = true) => {
         try {
-            const data = await getStorageData([
-                STORAGE_KEYS.MINUTES,
-                STORAGE_KEYS.SHORT_BREAK,
-                STORAGE_KEYS.LONG_BREAK,
-                STORAGE_KEYS.SETS,
-            ]);
-
-            const minutes = parseInt(data[STORAGE_KEYS.MINUTES]) || 30;
-            const shortBreak = parseInt(data[STORAGE_KEYS.SHORT_BREAK]) || 5;
-            const longBreak = parseInt(data[STORAGE_KEYS.LONG_BREAK]) || 15;
-            let sets = parseInt(data[STORAGE_KEYS.SETS]);
-
-            minuteSlider.value = minutes;
-            shortBreakSlider.value = shortBreak;
-            longBreakSlider.value = longBreak;
-
-            minuteSliderValue.textContent = `${minutes}:00`;
-            shortBreakSliderValue.textContent = `${shortBreak}:00`;
-            longBreakSliderValue.textContent = `${longBreak}:00`;
-
-            // Initialize sets
-            if (isNaN(sets)) {
-                sets = DEFAULT_SETS;
-                await setStorageData({ [STORAGE_KEYS.SETS]: sets });
+            if (sectionKey != STORAGE_KEYS.OPTIONS || sectionKey != STORAGE_KEYS.TIMER_STATE) {
+                throw error("Invalid sectionKey");
             }
-            updateSetDisplay(sets);
-            timerText.textContent = formatTime(minutes * 60);
-
-
-        }
-        catch (err) {
-            console.error("Error initializing settings", err);
-        }
-    };
-
-    /**
-     * Update sets display and number
-     * @param {number} sets 
-     */
-    const updateSetDisplay = (sets) => {
-        setsValue.textContent = `${sets}`;
-
-        // clear existing dots
-        setContainer.innerHTML = "";
-
-        // create elements based on number of sets
-        for (let i = 0; i < sets; i++) {
-            const dot = document.createElement("span");
-            dot.classList.add("set_dot");
-            setContainer.appendChild(dot);
-        }
-
-    }
-
-    /**
-     * Save a key-value pair to local storage
-     * @param {} key 
-     * @param {*} value 
-     */
-    const saveToLocalStorage = async (key, value) => {
-        try{
-            const data = { [key]: value };
-            await setStorageData(data);
-        }
-        catch (err) {
-            console.error(`Error saving ${key} to storage:`, err);
-        }
-    }
-
-    /**
-     * Format time in seconds to mm:ss format
-     * @param {*} seconds 
-     * @returns 
-     */
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    /**
-     * Starts countdown timer
-     */
-    const startTimer = async () => {
-        if (isRunning) return; // make sure its only running once
-
-        isRunning = true;
-        lockSliders(true); // @TODO
-        startButton.textContent = "Pause";
-
-        // Initialize remainingTime based on settings
-        const minutes = parseInt(minuteSlider.value);
-        remainingTime = minutes * 60;
-
-        timerText.textContent = formatTime(remainingTime);
-
-        // inform service worker to start timer
-        await startBackgroundTimer();
-
-        timerInterval = setInterval(() => {
-            if (remainingTime > 0) {
-                remainingTime -= 1;
-                timerText.textContent = formatTime(remainingTime);
+            if (merge) {
+                const data = await getStorageData();
+                // merge updates
+                const newSectionData = { ...data[sectionKey], ...updateData };
+                await setStorageData({ [sectionKey]: newSectionData });
+                console.log(
+                  `Section ${sectionKey} updated successfully (merged).`
+                );
             }
             else {
-                clearInterval(timerInterval);
-                isRunning = false;
-                lockSliders(false);
-                startButton.textContent = "Start";
+                await setStorageData({ [sectionKey]: updateData });
+                 console.log(
+                   `Section ${sectionKey} updated successfully (replaced).`
+                 );
             }
-        }, 1000);
+        }
+        catch (error) {
+            console.error(`Error updating section ${sectionKey}:`, error);
+        }
+
     };
 
-    const startBackgroundTimer = async () => {
-        chrome.runtime.sendMessage({ action: "start_timer", duration: 60 }, (response) => {
-            console.log("Background response:", response.status);
-        });
+    /* */
+    const initializeSettings = async () => {
+        console.log("initializing settings...");
+        // 1. Check if values are missing
+        // - if ALL values are missing (first time opening), then replace
+        // - if a partial value is missing (something went wrong)
     };
 
-    /**
-     * Pauses the timer
-     * @returns
-     */
-    const pauseTimer = () => {
-        if (!isRunning) return;
+    /* Run logs and tests */
+    const runTests = async () => {
+        // 1. Test getStorageData
+        console.log("---Testing getStorageData...---");
+        await getStorageData();
+        console.log("---Finished testing getStorageData...---");
 
-        clearInterval(timerInterval);
-        isRunning = false;
-        lockSliders(false);
-        startButton.textContent = "Start";
-    }
+        // 2. Test setStorageData
+        console.log("---Testing setStorageData...---");
 
-    const toggleTimer = () => {
-        if (isRunning) {
-            pauseTimer();
-        }
-        else {
-            startTimer();
-        }
-    }
+        console.log("---Finished testing setStorageData...---");
+    };
 
-    /**
-     * Toggles disabled/enabled state
-     * @param {boolean} lock 
-     */
-    const lockSliders = (lock) => {
-        minuteSlider.disabled = lock;
-        shortBreakSlider.disabled = lock;
-        longBreakSlider.disabled = lock; 
-        setsLeftBtn.disabled = lock; 
-        setsRightBtn.disabled = lock;
-    }
-
-    // Event listeners for sliders
-    minuteSlider.addEventListener("input", async () => {
-        const minutes = minuteSlider.value;
-        minuteSliderValue.textContent = `${minutes}:00`;
-        await saveToLocalStorage(STORAGE_KEYS.MINUTES, minutes);
-
-        // change main timer text as well
-        timerText.textContent = `${minutes}:00`;
-    });
-    
-    shortBreakSlider.addEventListener("input", async () => {
-        const shortBreak = shortBreakSlider.value;
-        shortBreakSliderValue.textContent = `${shortBreak}:00`;
-        await saveToLocalStorage(STORAGE_KEYS.SHORT_BREAK, shortBreak);
-    });
-
-    longBreakSlider.addEventListener("input", async () =>{
-        const longBreak = longBreakSlider.value;
-        longBreakSliderValue.textContent = `${longBreak}:00`;
-        await saveToLocalStorage(STORAGE_KEYS.LONG_BREAK, longBreak);
-    });
-
-    // Event Listener for set buttons (increment/decrement)
-    setsLeftBtn.addEventListener("click", async () =>{
-        try{ 
-            const data = await getStorageData(STORAGE_KEYS.SETS);
-            let sets = parseInt(data[STORAGE_KEYS.SETS]) || DEFAULT_SETS;
-            if (sets > MIN_SETS) {
-                sets -= 1; 
-                await saveToLocalStorage(STORAGE_KEYS.SETS, sets);
-                updateSetDisplay(sets);
-            }
-        }
-        catch (err) {
-            console.error("Error updating sets:", err);
-        }
-
-    });
-
-    setsRightBtn.addEventListener("click", async () => {
-        try {
-            const data = await getStorageData(STORAGE_KEYS.SETS);
-            let sets = parseInt(data[STORAGE_KEYS.SETS]) || DEFAULT_SETS;
-            if (sets < MAX_SETS) {
-                sets += 1;
-                await saveToLocalStorage(STORAGE_KEYS.SETS, sets);
-                updateSetDisplay(sets);
-            }
-        } catch (err) {
-            console.error("Error updating sets:", err);
-        }
-    });
-
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.action === "timer_finished") {
-            console.log("Timer finished received!");
-        }
-    });
-
-    startButton.addEventListener("click", toggleTimer);
-
-    initializeSettings();
-
+    runTests();
 });
