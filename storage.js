@@ -10,13 +10,13 @@ export const STORAGE_KEYS = {
 };
 
 export const DEFAULT_STORAGE = {
-  minutes: 25,
-  shortBreak: 5,
-  longBreak: 15,
-  sets: 4,
+  minutes: 25, // minutes
+  shortBreak: 5, // minutes
+  longBreak: 15, // minutes
+  sets: 4, 
   isRunning: false,
-  remainingTime: 0,
-  phase: "idle",
+  remainingTime: 0, // seconds
+  phase: "idle", // idle, paused, work, shortBreak, longBreak
   completedSets: 0,
 };
 
