@@ -21,21 +21,30 @@ export const DEFAULT_STORAGE = {
 };
 
 /**
- * Retrieve a single value given a key
- * @param {*} key - from STORAGE_KEYS
+ * Retrieve a single OR multiple values 
+ * @param {string|Array<string>} keys - single key or array of keys
  * @returns A promise that resolves to the value
- * Usage: const x = await getValue(STORAGE_KEYS.MINUTES);
+ * Usage (single): const x = await getValue(STORAGE_KEYS.MINUTES);
+ * Usage (multiple): const y = await getvalue([STORAGE_KEYS.MINUTES, STORAGE_KEYS.SHORT_BREAK]);
  */
-export const getValue = async (key) => {
+export const getValue = async (keys) => {
     return new Promise((resolve, reject) => {
-        chrome.storage.local.get([key], data => {
+        chrome.storage.local.get(keys, (result) => {
             if (chrome.runtime.lastError) {
                 return reject(chrome.runtime.lastError);
             }
-            resolve(data[key]);
+            
+            // if it was a single key, then resolve a single result
+            if (typeof keys === "string") {
+                resolve(result[keys]);
+            } 
+            // otherwise, give an object
+            else {
+                resolve(result);
+            }
         });
     });
-}
+};
 
 /**
  * Set a single value given a key
