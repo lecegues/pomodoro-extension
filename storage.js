@@ -47,15 +47,18 @@ export const getValue = async (keys) => {
 };
 
 /**
- * Set a single value given a key
- * @param {*} key - from STORAGE_KEYS
- * @param {*} value - a value to set (refer to STORAGE_KEYS)
+ * Set a single value OR multiple values given a key
+ * @param {string|Object} key - single key or an object containing key-value pairs
+ * @param {*} value - a value to set ONLY if its a SINGLE key
  * @returns A promise that resolves to the value
- * Usage: await setValue(STORAGE_KEYS.MINUTES, 30);
+ * Usage (single): await setValue(STORAGE_KEYS.MINUTES, 30);
+ * Usage (multiple): await setValue(DEFAULT_STORAGE);
  */
 export const setValue = async (key, value) => {
     return new Promise((resolve, reject) => {
-        chrome.storage.local.set({ [key]: value }, () => {
+        // if key is an object, use it directly
+        const data = typeof key === 'object' ? key : { [key]: value };
+        chrome.storage.local.set(data, () => {
             if (chrome.runtime.lastError) {
                 return reject(chrome.runtime.lastError);
             }
