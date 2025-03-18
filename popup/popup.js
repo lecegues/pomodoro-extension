@@ -6,7 +6,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // =================================================
     // CONSTANTS
     // =================================================
-  
+
+    // @TODO allow variables to be modified in settings
+    const MIN_SETS = 1;
+    const MAX_SETS = 8;
+
+    // =================================================
+    // DOM ELEMENTS
+    // =================================================
+
+    // =================================================
+    // FUNCTIONS
+    // =================================================
 
     // =================================================
     // ENTRYPOINTS
@@ -17,28 +28,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             // retrieve ALL data
-            const keys = [
-                STORAGE_KEYS.MINUTES,
-                STORAGE_KEYS.SHORT_BREAK,
-                STORAGE_KEYS.LONG_BREAK,
-                STORAGE_KEYS.SETS,
-                STORAGE_KEYS.IS_RUNNING,
-                STORAGE_KEYS.REMAINING_TIME,
-                STORAGE_KEYS.PHASE,
-                STORAGE_KEYS.COMPLETED_SETS,
-            ];
+            const keys = Object.values(STORAGE_KEYS);
             const data = await getValue(keys);
-            
-            const missingKeys = keys.filter(key => data[key] === undefined);
+
+            const missingKeys = keys.filter((key) => data[key] === undefined);
 
             // Case 1: if all data is missing, use defaults
             if (missingKeys.length == keys.length) {
-                console.log("No data found. New user detected. Initializing with default settings...");
+                console.log(
+                    "No data found. New user detected. Initializing with default settings..."
+                );
+                await setValue(DEFAULT_STORAGE);
             }
 
             // Case 2: if partial data, throw error (unexpected)
             else if (missingKeys.length > 0) {
-                throw new error(`Incomplete data received. Missing keys: ${missingKeys.join(",")}`);
+                throw new Error(
+                    `Incomplete data received. Missing keys: ${missingKeys.join(
+                        ","
+                    )}`
+                );
             }
 
             // Case 3: All keys exist-- resume session
@@ -46,13 +55,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log("All data found. Resuming session...");
             }
 
-        } 
-        catch (error) {
+        } catch (error) {
             console.error("Error during initialization:", error);
-            // revert to default settings
-            await chrome.storage.local.set(DEFAULT_STORAGE);
-            // update UI
+            console.log("Reverting back to default settings...");
+            await setValue(DEFAULT_STORAGE);
         }
+
+        // after, update the display
+        // updateDisplay
+
     };
 
     /* Run logs and tests */
@@ -61,8 +72,8 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("---Testing getters & setters ---");
         await setValue(STORAGE_KEYS.COMPLETED_SETS, 5);
         console.assert(
-        (await getValue(STORAGE_KEYS.COMPLETED_SETS)) == 5,
-        "Test failed: Set value is incorrect"
+            (await getValue(STORAGE_KEYS.COMPLETED_SETS)) == 5,
+            "Test failed: Set value is incorrect"
         );
         await chrome.storage.local.remove(STORAGE_KEYS.COMPLETED_SETS);
         console.log("---Finished testing getters & setters---");
