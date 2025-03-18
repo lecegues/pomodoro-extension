@@ -1,4 +1,5 @@
 
+/*
 // `start_timer`: listener to start the timer
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "start_timer") {
@@ -49,3 +50,4 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
+*/
