@@ -55,21 +55,27 @@ document.addEventListener("DOMContentLoaded", () => {
      * Update the display of the options
      * @TODO event listener for options: if changed, save to local storage
      * @TODO make sets color in dots depending on how much there are
-     * @param {*} param0 
+     * @param {*} param0
      */
-    const updateOptionDisplay = ({ minutes, shortBreak, longBreak, sets, filledSets }) => {
+    const updateOptionDisplay = ({
+        minutes,
+        shortBreak,
+        longBreak,
+        sets,
+        filledSets,
+    }) => {
         if (minutes !== undefined) {
-            minuteSlider.value = minutes; 
+            minuteSlider.value = minutes;
             minuteSliderValue.textContent = `${minutes}:00`;
         }
 
         if (shortBreak !== undefined) {
-            shortBreakSlider.value = shortBreak; 
+            shortBreakSlider.value = shortBreak;
             shortBreakSliderValue.textContent = `${shortBreak}:00`;
         }
 
         if (longBreak !== undefined) {
-            longBreakSlider.value = longBreak; 
+            longBreakSlider.value = longBreak;
             longBreakSliderValue.textContent = `${longBreak}:00`;
         }
 
@@ -92,16 +98,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 dot.classList.toggle("set_dot--dark", index < filledSets);
             });
         }
-
     };
 
     /**
      * Update the timer
-     * @param {*} text 
+     * @param {*} text
      */
     const updateTimer = (text) => {
         timerText.textContent = text;
-    }
+    };
 
     /**
      * Update sliders to locked or unlocked state
@@ -113,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
         longBreakSlider.disabled = lock;
         setsLeftBtn.disabled = lock;
         setsRightBtn.disabled = lock;
-    }
+    };
 
     const updateDisplay = (data) => {
         console.log("Updating Display given:", data);
@@ -136,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // updateTimer(remainingTime);
                 updateTimer(formatTime(data.remainingTime));
                 // updateStartButton(data.phase);
-                startButton.textContent = "Resume"; 
+                startButton.textContent = "Resume";
                 break;
 
             case "work":
@@ -147,7 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateLocked(true);
                 // updateTimer(remainingTime);
                 updateTimer(formatTime(data.remainingTime));
-                // updateStartButton(data.phase); 
+                // updateStartButton(data.phase);
                 startButton.textContent = "Pause";
                 // if isRunning.isTrue: startTimer
                 // if isRunning.isFalse: (this means that its just finished. Middle of transitioning to next phase)...
@@ -159,11 +164,72 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateLocked(false);
                 // updateTimer(data.minutes);
                 updateTimer(formatTime(data.minutes * 60));
-                // updateStartButton(data.phase); 
+                // updateStartButton(data.phase);
                 startButton.textContent = "Start";
         }
+    };
 
-    }
+    // =================================================
+    // EVENT LISTENERS
+    // =================================================
+
+    // Event Listeners for slider options
+    minuteSlider.addEventListener("input", async () => {
+        const minutes = minuteSlider.value;
+        minuteSliderValue.textContent = `${minutes}:00`;
+        timerText.textContent = `${minutes}:00`;
+        await setValue(STORAGE_KEYS.MINUTES, minutes);
+
+        console.log("Changed remote storage minutes to", minutes);
+
+    });
+
+    shortBreakSlider.addEventListener("input", async () => {
+        const shortBreak = shortBreakSlider.value; 
+        shortBreakSliderValue.textContent = `${shortBreak}:00`; 
+        await setValue(STORAGE_KEYS.SHORT_BREAK, shortBreak); 
+
+        console.log("Changed remote storage shortBreak to", shortBreak);
+    });
+
+    longBreakSlider.addEventListener("input", async() => {
+        const longBreak = longBreakSlider.value; 
+        longBreakSliderValue.textContent = `${longBreak}:00`; 
+        await setValue(STORAGE_KEYS.LONG_BREAK, longBreak); 
+
+        console.log("Changed remote storage longBreak to", longBreak); 
+    });
+
+    // Event Listeners for set buttons (increment/decrement)
+    setsLeftBtn.addEventListener("click", async () => {
+        try {
+            let sets = await getValue(STORAGE_KEYS.SETS);
+            if (sets > MIN_SETS) {
+                sets -= 1; 
+                await setValue(STORAGE_KEYS.SETS, sets); 
+                updateOptionDisplay({ sets:sets });
+                console.log("Decreased sets value by 1 to", sets);
+            } 
+        }
+        catch (err) {
+            console.error("Error updating sets:", err);
+        }
+    });
+
+    setsRightBtn.addEventListener("click", async () => {
+        try {
+            let sets = await getValue(STORAGE_KEYS.SETS); 
+            if (sets < MAX_SETS) {
+                sets += 1; 
+                await setValue(STORAGE_KEYS.SETS, sets); 
+                updateOptionDisplay({ sets:sets }); 
+                console.log("Increased sets value by 1 to", sets);
+            }
+        }
+        catch (err) {
+            console.error("Error updating sets:", err);
+        }
+    });
 
     // =================================================
     // ENTRYPOINTS
@@ -202,13 +268,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log("All data found. Resuming session...");
                 updateDisplay(data);
             }
-
         } catch (error) {
             console.error("Error during initialization:", error);
             console.log("Reverting back to default settings...");
             await setValue(DEFAULT_STORAGE);
         }
-
     };
 
     /* Run logs and tests */
