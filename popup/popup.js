@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * @TODO make sets color in dots depending on how much there are
      * @param {*} param0 
      */
-    const updateOptionDisplay = ({ minutes, shortBreak, longBreak, sets, filled_sets }) => {
+    const updateOptionDisplay = ({ minutes, shortBreak, longBreak, sets, filledSets }) => {
         if (minutes !== undefined) {
             minuteSlider.value = minutes; 
             minuteSliderValue.textContent = `${minutes}:00`;
@@ -79,16 +79,18 @@ document.addEventListener("DOMContentLoaded", () => {
             // clear existing dots
             setContainer.innerHTML = "";
 
-            let j = filled_sets ?? 0;
             // create elements based on number of sets
             for (let i = 0; i < sets; i++) {
                 const dot = document.createElement("span");
                 dot.classList.add("set_dot");
-                if (i < j) {
-                    dot.classList.add("set_dot--dark");
-                }
                 setContainer.appendChild(dot);
             }
+        }
+
+        if (filledSets !== undefined) {
+            Array.from(setContainer.children).forEach((dot, index) => {
+                dot.classList.toggle("set_dot--dark", index < filledSets);
+            });
         }
 
     };
@@ -122,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
             shortBreak: data.shortBreak,
             longBreak: data.longBreak,
             sets: data.sets,
-            filled_sets: data.completedSets,
+            filledSets: data.completedSets,
         });
 
         // Now, we filter based on the phase
@@ -135,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateTimer(formatTime(data.remainingTime));
                 // updateStartButton(data.phase);
                 startButton.textContent = "Resume"; 
-                // updateCompletedSets(completedSets);
                 break;
 
             case "work":
@@ -148,7 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateTimer(formatTime(data.remainingTime));
                 // updateStartButton(data.phase); 
                 startButton.textContent = "Pause";
-                // updateCompletedSets(completedSets);
                 // if isRunning.isTrue: startTimer
                 // if isRunning.isFalse: (this means that its just finished. Middle of transitioning to next phase)...
                 break;
@@ -161,7 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateTimer(formatTime(data.minutes * 60));
                 // updateStartButton(data.phase); 
                 startButton.textContent = "Start";
-                // updateCompletedSets(completedSets);
         }
 
     }
