@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * @TODO make sets color in dots depending on how much there are
      * @param {*} param0 
      */
-    const updateOptionDisplay = ({ minutes, shortBreak, longBreak, sets }) => {
+    const updateOptionDisplay = ({ minutes, shortBreak, longBreak, sets, filled_sets }) => {
         if (minutes !== undefined) {
             minuteSlider.value = minutes; 
             minuteSliderValue.textContent = `${minutes}:00`;
@@ -79,10 +79,14 @@ document.addEventListener("DOMContentLoaded", () => {
             // clear existing dots
             setContainer.innerHTML = "";
 
+            let j = filled_sets ?? 0;
             // create elements based on number of sets
             for (let i = 0; i < sets; i++) {
                 const dot = document.createElement("span");
                 dot.classList.add("set_dot");
+                if (i < j) {
+                    dot.classList.add("set_dot--dark");
+                }
                 setContainer.appendChild(dot);
             }
         }
@@ -118,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
             shortBreak: data.shortBreak,
             longBreak: data.longBreak,
             sets: data.sets,
+            filled_sets: data.completedSets,
         });
 
         // Now, we filter based on the phase
