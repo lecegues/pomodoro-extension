@@ -1,5 +1,4 @@
 
-/*
 // `start_timer`: listener to start the timer
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "start_timer") {
@@ -25,6 +24,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+
 // `stop_timer`: pause/cancel the timer (alarm)
 // once start is pressed again, take new date with remaining time and update it
 
@@ -40,14 +40,16 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             type: 'basic',
             iconUrl: 'images/icon48.png', // Ensure this icon exists
             title: 'Pomodoro Timer',
-            message: 'Your Pomodoro session has finished! Click here to open the timer.',
+            message: 'Your Pomodoro session has finished! Return to the extension timer to see the status',
             priority: 2
         }, (notificationId) => {
             console.log("Notification shown with ID:", notificationId);
         });
 
-        chrome.runtime.sendMessage({ action: "timer_finished" });
+        // no point in sending a message if the popup is closed anyways?
+        // OR maybe just handle the error (in the case of popup not opened)
+        // and if popup is opened, it would receive the message
+        // OR just assume the setInterval and the background script will finish at the same time
+        // chrome.runtime.sendMessage({ action: "timer_finished" });
     }
 });
-
-*/

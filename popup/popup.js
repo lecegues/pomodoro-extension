@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const MIN_SETS = 1;
     const MAX_SETS = 8;
 
+    // Timer
+    let remainingTime;
+    let timerInterval;
+
     // =================================================
     // DOM ELEMENTS
     // =================================================
@@ -50,6 +54,82 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // UI Functions
+
+    const pauseTimer = async () => {
+        console.log("Pausing timer...");
+
+        setValue(STORAGE_KEYS.IS_RUNNING, false);
+        setValue(STORAGE_KEYS.PHASE, "idle"); // @TODO TEMPORARY
+        updateLocked(false); 
+        startButton.textContent = "Start";
+    }
+
+    /**
+     * Start a timer from the "idle" phase
+     */
+    const startTimer = async () => {
+        console.log("Starting timer...");
+        
+        setValue(STORAGE_KEYS.IS_RUNNING, true);
+        setValue(STORAGE_KEYS.PHASE, "work");
+        updateLocked(true);
+        startButton.textContent = "Pause";
+
+        // local or remote or doesn't matter?
+        remainingTime = parseInt(minuteSlider.value) * 60; // remainingTime = slider value
+        console.log("Remaining time set to:", remainingTime);
+        // Initialize the Background Timer (e.g. async time)
+        await startBackgroundTimer();
+        // Initialize the timerInterval (e.g. window time)
+        timerInterval = setInterval(() => {
+            if (remainingTime > 0) {
+                remainingTime -= 1; 
+                timerText.textContent = formatTime(remainingTime);
+            }
+            else {
+                // insert remote updates
+                clearInterval(timerInterval);
+                startButton.textContent = "Start";
+            }
+        }, 1000);
+
+    }
+
+    const startBackgroundTimer = async () => {
+        chrome.runtime.sendMessage(
+            { action: "start_timer", duration: 60 },
+            (response) => {
+                console.log("Background response:", response.status);
+            }
+        );
+    }
+
+    const resumeTimer = async () => {
+        console.log("Resuming the timer...");
+    }
+
+    /**
+     * Toggle timer on/off depending on the phase
+     */
+    const toggleTimer = async () => {
+        let phase = await getValue(STORAGE_KEYS.PHASE);
+        switch (phase) {
+            case "paused":
+                break;
+
+            case "work":
+            case "shortBreak":
+            case "longBreak":
+                // check isRunning here to track if break is paused
+                await pauseTimer();
+                break;
+
+            case "idle":
+            default:
+                await startTimer();
+
+        }
+    }
 
     /**
      * Update the display of the options
@@ -229,6 +309,10 @@ document.addEventListener("DOMContentLoaded", () => {
         catch (err) {
             console.error("Error updating sets:", err);
         }
+    });
+
+    startButton.addEventListener("click", async () => {
+        await toggleTimer();
     });
 
     // =================================================
