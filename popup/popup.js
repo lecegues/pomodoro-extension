@@ -78,8 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // local or remote or doesn't matter?
         remainingTime = parseInt(minuteSlider.value) * 60; // remainingTime = slider value
         console.log("Remaining time set to:", remainingTime);
+
         // Initialize the Background Timer (e.g. async time)
-        await startBackgroundTimer();
+        await startBackgroundTimer(remainingTime);
+
         // Initialize the timerInterval (e.g. window time)
         timerInterval = setInterval(() => {
             if (remainingTime > 0) {
@@ -90,14 +92,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 // insert remote updates
                 clearInterval(timerInterval);
                 startButton.textContent = "Start";
+                // let service worker handle transition & notification
             }
         }, 1000);
 
     }
 
+    // remainingTime? 
+    // 1. Set on timer start, recalculate when opened
+    // 2. Align with service worker and "extract" from service worker
+
     const startBackgroundTimer = async () => {
         chrome.runtime.sendMessage(
-            { action: "start_timer", duration: 60 },
+            { action: "start_timer", duration: remainingTime },
             (response) => {
                 console.log("Background response:", response.status);
             }

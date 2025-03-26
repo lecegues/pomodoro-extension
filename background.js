@@ -1,10 +1,14 @@
 
 // `start_timer`: listener to start the timer
+/**
+ * start_timer: listener to start the timer
+ * @param {Number} message.duration: timer duration in seconds
+ */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "start_timer") {
         // pre-cond: make sure `message` contains duration
-        // const alarmTime = Date.now() + message.duration * 60 * 1000; // turn into seconds
-        const alarmTime = Date.now() + 5*1000; // temporary for testing
+        const alarmTime = Date.now() + message.duration * 1000; // turn into ms
+        // const alarmTime = Date.now() + 5*1000; // temporary for testing
 
         chrome.storage.local.set ( {alarmTime} , () => {
             if (chrome.runtime.lastError) {
@@ -13,10 +17,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 return;
             }
 
-            // create alarm
+            // create alarm given ms
             chrome.alarms.create("timerEnd", { when: alarmTime });
 
-            console.log(`Timer set for ${message.duration} minutes`);
+            console.log(`Timer set for ${message.duration} seconds`);
             sendResponse({ status: "Timer started" });
         });
 
