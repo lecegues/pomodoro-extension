@@ -53,13 +53,61 @@ document.addEventListener("DOMContentLoaded", () => {
             .padStart(2, "0")}`;
     };
 
+    /**
+     * Replace data.remainingTime with this
+     * Get the time from the running timer
+     * @precond need to be running
+     * @postcond sets the global variable, `remainingTime` as initialized
+     */
+    const getRemainingTime = () => {
+        return new Promise((resolve) => {
+            chrome.alarms.get("timerEnd", (alarm) => {
+                if (alarm) {
+                    remainingTime = Math.max(
+                        0,
+                        Math.floor((alarm.scheduledTime - Date.now()) / 1000)
+                    );
+                    console.log(
+                        "Set `remainingTime` to:",
+                        remainingTime,
+                        "seconds"
+                    );
+                } else {
+                    remainingTime = 0;
+                    console.log("No alarm found. Set `remainingTime` to 0.");
+                }
+                resolve(remainingTime);
+            });
+        });
+    };
+
     // UI Functions
 
     const pauseTimer = async () => {
         console.log("Pausing timer...");
 
         setValue(STORAGE_KEYS.IS_RUNNING, false);
-        setValue(STORAGE_KEYS.PHASE, "idle"); // @TODO TEMPORARY
+        let phase = getValue(STORAGE_KEYS.PHASE); 
+        switch (phase) {
+            case "work": 
+                setValue(STORAGE_KEYS.PHASE, "paused"); 
+                console.log("Set phase to 'paused'");
+                break; 
+
+            case "shortBreak": 
+                setValue(STORAGE_KEYS.PHASE, "shortBreakPaused");
+                console.log("Set phase to 'shortBreakPaused'");
+                break; 
+
+            case "longBreak": 
+                setValue(STORAGE_KEYS.PHASE, "longBreakPaused");
+                console.log("Set phase to 'longBreakPaused'"); 
+                break; 
+
+            default: 
+                // if not expected
+                console.log("Unexpected phase case:", phase);
+        }
         updateLocked(false); 
         startButton.textContent = "Start";
     }
@@ -113,6 +161,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const resumeTimer = async () => {
         console.log("Resuming the timer...");
+
+
+        timerText.textContent = formatTime(remainingTime);
+
+        // take remainingTime and set a timerinterval
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (remainingTime > 0) {
+                remainingTime -= 1;
+                timerText.textContent = formatTime(remainingTime);
+            } else {
+                // insert remote updates
+                clearInterval(timerInterval);
+                startButton.textContent = "Start";
+                // let service worker handle transition & notification
+            }
+        }, 1000);
+        
     }
 
     /**
@@ -207,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setsRightBtn.disabled = lock;
     };
 
-    const updateDisplay = (data) => {
+    const updateDisplay = async (data) => {
         console.log("Updating Display given:", data);
 
         // First, update all options no matter the state
@@ -227,6 +293,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateLocked(true);
                 // updateTimer(remainingTime);
                 updateTimer(formatTime(data.remainingTime));
+
+                // @TODO update if paused? Can we pause an ongoing chrome timer? 
+                // OR should we cancel the timer and save remainingTime? 
+                // await getRemainingTime(); 
+                // updateTimer(formatTime(remainingTime));
+
                 // updateStartButton(data.phase);
                 startButton.textContent = "Resume";
                 break;
@@ -238,10 +310,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 // updateLocked(true);
                 updateLocked(true);
                 // updateTimer(remainingTime);
-                updateTimer(formatTime(data.remainingTime));
+                // updateTimer(formatTime(data.remainingTime));
+                await getRemainingTime(); 
+                updateTimer(formatTime(remainingTime));
                 // updateStartButton(data.phase);
                 startButton.textContent = "Pause";
+
                 // if isRunning.isTrue: startTimer
+                if (data.isRunning) {
+                    await resumeTimer();
+                }
                 // if isRunning.isFalse: (this means that its just finished. Middle of transitioning to next phase)...
                 break;
 
@@ -342,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     "No data found. New user detected. Initializing with default settings..."
                 );
                 await setValue(DEFAULT_STORAGE);
-                updateDisplay(DEFAULT_STORAGE);
+                await updateDisplay(DEFAULT_STORAGE);
             }
 
             // Case 2: if partial data, throw error (unexpected)
@@ -357,7 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Case 3: All keys exist-- resume session
             else {
                 console.log("All data found. Resuming session...");
-                updateDisplay(data);
+                await updateDisplay(data);
             }
         } catch (error) {
             console.error("Error during initialization:", error);
@@ -380,5 +458,5 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // runTests();
-    initializeSettings();
+    initializeSettings(); // this is async btw-- async if need to wait
 });
